@@ -12,10 +12,69 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// IMPORT THE LOGO
 import logo from "./assets/logo.jpeg";
 
-// --- Icons (Inline SVGs) ---
+/* ===================== TRANSLATIONS ===================== */
+
+const translations = {
+  en: {
+    selectLanguage: "Select Language",
+    signIn: "Please sign in to continue",
+    welcomeBack: "Welcome back",
+    signOut: "Sign Out",
+    connectGrid: "Connect to Grid",
+    channelId: "Channel ID",
+    readApiKey: "Read API Key",
+    launchDashboard: "Launch Dashboard",
+    overview: "Overview",
+    realtime: "Real-time telemetry from microgrid sensors.",
+    lastSynced: "Last synced",
+    voltage: "Voltage",
+    current: "Current",
+    battery: "Battery SOC",
+    temperature: "Temperature",
+    power: "Power Consumption",
+    systemAlert: "SYSTEM ALERT",
+    systemOnline: "System Online",
+    disconnect: "Disconnect",
+    alerts: {
+      voltage: "High Voltage",
+      current: "High Current",
+      battery: "Low Battery",
+      temperature: "High Temperature",
+    }
+  },
+  hi: {
+    selectLanguage: "भाषा चुनें",
+    signIn: "जारी रखने के लिए साइन इन करें",
+    welcomeBack: "स्वागत है",
+    signOut: "साइन आउट",
+    connectGrid: "ग्रिड से कनेक्ट करें",
+    channelId: "चैनल आईडी",
+    readApiKey: "रीड एपीआई की",
+    launchDashboard: "डैशबोर्ड शुरू करें",
+    overview: "सारांश",
+    realtime: "माइक्रोग्रिड सेंसर से रियल-टाइम डेटा।",
+    lastSynced: "अंतिम अपडेट",
+    voltage: "वोल्टेज",
+    current: "करंट",
+    battery: "बैटरी स्तर",
+    temperature: "तापमान",
+    power: "पावर खपत",
+    systemAlert: "सिस्टम चेतावनी",
+    systemOnline: "सिस्टम ऑनलाइन",
+    disconnect: "डिस्कनेक्ट करें",
+    alerts: {
+      voltage: "उच्च वोल्टेज",
+      current: "उच्च करंट",
+      battery: "कम बैटरी",
+      temperature: "उच्च तापमान",
+    }
+  }
+};
+
+/* ===================== ICONS ===================== */
+
 const Icons = {
   Activity: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
@@ -30,14 +89,14 @@ const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
   ),
   Zap: () => (
-     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
   ),
   Alert: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
   )
 };
 
-// --- Components ---
+/* ===================== UI COMPONENTS ===================== */
 
 const StatCard = ({ title, value, unit, icon: Icon, color, subtext }) => (
   <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group">
@@ -116,26 +175,76 @@ const ChartBox = ({ title, data, dataKey, color, unit }) => {
   );
 };
 
-// --- Main Logic Component ---
+/* ===================== MAIN DASHBOARD ===================== */
 
 function MicrogridDashboard() {
-  // Authentication State
+
+  /* ---------- LANGUAGE ---------- */
+  const [language, setLanguage] = useState(localStorage.getItem("language"));
+  const t = language ? translations[language] : null;
+
+  /* ---------- AUTH ---------- */
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("googleUser");
     return saved ? JSON.parse(saved) : null;
   });
 
-  // App State
+  /* ---------- DATA ---------- */
   const [data, setData] = useState([]);
   const [channelId, setChannelId] = useState(localStorage.getItem("channelId") || "");
   const [apiKey, setApiKey] = useState(localStorage.getItem("apiKey") || "");
   const [isConnected, setIsConnected] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // --- Handlers ---
-  
+  /* ---------- THRESHOLDS ---------- */
+  const LIMITS = {
+    voltage: 250,
+    current: 15,
+    temperature: 50,
+    battery: 20
+  };
+
+  /* ---------- NOTIFICATIONS ---------- */
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const notify = (title, body) => {
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: logo });
+    }
+  };
+
+  const checkEmergencies = (latest) => {
+    if (!latest) return;
+    const newAlerts = [];
+
+    // Checked using your first block's logic (More comprehensive)
+    if (latest.voltage > LIMITS.voltage) {
+      newAlerts.push(`${t.alerts.voltage}: ${latest.voltage}V`);
+      notify(t.alerts.voltage, `${latest.voltage}V`);
+    }
+    if (latest.current > LIMITS.current) {
+      newAlerts.push(`${t.alerts.current}: ${latest.current}A`);
+      notify(t.alerts.current, `${latest.current}A`);
+    }
+    if (latest.temperature > LIMITS.temperature) {
+      newAlerts.push(`${t.alerts.temperature}: ${latest.temperature}°C`);
+      notify(t.alerts.temperature, `${latest.temperature}°C`);
+    }
+    if (latest.soc < LIMITS.battery && latest.soc > 0) {
+      newAlerts.push(`${t.alerts.battery}: ${latest.soc}%`);
+      notify(t.alerts.battery, `${latest.soc}%`);
+    }
+
+    setAlerts(newAlerts);
+  };
+
+  /* ---------- HANDLERS ---------- */
   const handleGoogleSuccess = (credentialResponse) => {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
@@ -152,6 +261,7 @@ function MicrogridDashboard() {
     localStorage.removeItem("googleUser");
     localStorage.removeItem("channelId");
     localStorage.removeItem("apiKey");
+    // Do not clear language preference
   };
 
   const handleConnect = (e) => {
@@ -169,35 +279,9 @@ function MicrogridDashboard() {
     setAlerts([]);
   };
 
-  // --- Data Fetching Logic ---
-
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission !== "granted") {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  const checkEmergencies = (latestData) => {
-    if (!latestData) return;
-    const newAlerts = [];
-    const TEMP_THRESHOLD = 50; 
-    const BATTERY_THRESHOLD = 20;
-
-    if (latestData.temperature > TEMP_THRESHOLD) {
-      newAlerts.push(`🔥 High Temp: ${latestData.temperature}°C`);
-      if (Notification.permission === "granted") new Notification("🔥 Overheating!", { body: `Temp is ${latestData.temperature}°C`, icon: logo });
-    }
-
-    if (latestData.soc < BATTERY_THRESHOLD && latestData.soc > 0) {
-      newAlerts.push(`🪫 Low Battery: ${latestData.soc}%`);
-      if (Notification.permission === "granted") new Notification("🪫 Battery Low!", { body: `Level at ${latestData.soc}%`, icon: logo });
-    }
-    setAlerts(newAlerts);
-  };
-
+  /* ---------- FETCH DATA ---------- */
   const fetchData = async () => {
     if (!channelId || !apiKey) return;
-
     setLoading(true);
     try {
       const url = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${apiKey}&results=15`;
@@ -205,18 +289,18 @@ function MicrogridDashboard() {
       const json = await res.json();
 
       if (json.feeds) {
-        const formatted = json.feeds.map((feed) => ({
-          time: new Date(feed.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          voltage: Number(feed.field1) || 0,
-          current: Number(feed.field2) || 0,
-          soc: Number(feed.field3) || 0,
-          loadPower: Number(feed.field4) || 0,
-          temperature: Number(feed.field5) || 0,
+        const formatted = json.feeds.map(f => ({
+          time: new Date(f.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          voltage: Number(f.field1) || 0,
+          current: Number(f.field2) || 0,
+          soc: Number(f.field3) || 0,
+          loadPower: Number(f.field4) || 0,
+          temperature: Number(f.field5) || 0,
         }));
-        
+
         setData(formatted);
         setLastUpdate(new Date().toLocaleTimeString());
-        checkEmergencies(formatted[formatted.length - 1]);
+        checkEmergencies(formatted.at(-1));
       }
     } catch (err) {
       console.error("Error fetching data", err);
@@ -225,17 +309,31 @@ function MicrogridDashboard() {
   };
 
   useEffect(() => {
-    let interval;
     if (isConnected) {
       fetchData();
-      interval = setInterval(fetchData, 10000);
+      const i = setInterval(fetchData, 10000);
+      return () => clearInterval(i);
     }
-    return () => clearInterval(interval);
   }, [isConnected]);
 
   const latest = data.length > 0 ? data[data.length - 1] : {};
 
-  // --- VIEW 1: GOOGLE LOGIN ---
+  /* ---------- VIEW 0: LANGUAGE SELECTION ---------- */
+  if (!language) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="bg-white p-10 rounded-3xl shadow-xl text-center space-y-6">
+          <h1 className="text-2xl font-bold">Select Language / भाषा चुनें</h1>
+          <div className="flex gap-6 justify-center">
+            <button onClick={() => { localStorage.setItem("language", "en"); setLanguage("en"); }} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold">English</button>
+            <button onClick={() => { localStorage.setItem("language", "hi"); setLanguage("hi"); }} className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold">हिंदी</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- VIEW 1: LOGIN ---------- */
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -245,7 +343,7 @@ function MicrogridDashboard() {
         <div className="z-10 w-full max-w-sm bg-white/80 backdrop-blur-xl border border-white/50 p-10 rounded-3xl shadow-xl text-center">
           <img src={logo} alt="SunKalp" className="w-28 h-28 object-contain mb-4 mx-auto drop-shadow-md rounded-full" />
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight mb-2">Sunkalp</h1>
-          <p className="text-slate-500 mb-8 font-medium">Please sign in to continue</p>
+          <p className="text-slate-500 mb-8 font-medium">{t.signIn}</p>
           
           <div className="flex justify-center">
             <GoogleLogin
@@ -261,7 +359,7 @@ function MicrogridDashboard() {
     );
   }
 
-  // --- VIEW 2: THINGSPEAK CONFIG ---
+  /* ---------- VIEW 2: CONFIG ---------- */
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative">
@@ -269,16 +367,16 @@ function MicrogridDashboard() {
           <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
             <img src={user.picture} alt={user.name} className="w-12 h-12 rounded-full border-2 border-blue-100" />
             <div>
-              <p className="text-sm text-slate-500 font-semibold">Welcome back,</p>
+              <p className="text-sm text-slate-500 font-semibold">{t.welcomeBack},</p>
               <p className="text-lg font-bold text-slate-800">{user.name}</p>
             </div>
-            <button onClick={handleSignOut} className="ml-auto text-xs text-red-500 font-bold hover:underline">Sign Out</button>
+            <button onClick={handleSignOut} className="ml-auto text-xs text-red-500 font-bold hover:underline">{t.signOut}</button>
           </div>
           
-          <h2 className="text-xl font-bold text-slate-700 mb-6">Connect to Grid</h2>
+          <h2 className="text-xl font-bold text-slate-700 mb-6">{t.connectGrid}</h2>
           <form onSubmit={handleConnect} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Channel ID</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">{t.channelId}</label>
               <input
                 type="text"
                 placeholder="e.g. 123456"
@@ -288,7 +386,7 @@ function MicrogridDashboard() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Read API Key</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">{t.readApiKey}</label>
               <input
                 type="password"
                 placeholder="••••••••••••"
@@ -298,7 +396,7 @@ function MicrogridDashboard() {
               />
             </div>
             <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/25 transition-all">
-              Launch Dashboard
+              {t.launchDashboard}
             </button>
           </form>
         </div>
@@ -306,7 +404,7 @@ function MicrogridDashboard() {
     );
   }
 
-  // --- VIEW 3: DASHBOARD ---
+  /* ---------- VIEW 3: DASHBOARD ---------- */
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-100">
       
@@ -319,26 +417,40 @@ function MicrogridDashboard() {
           </div>
           
           <div className="flex items-center gap-4">
+            {/* System Status Indicator */}
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full border border-green-100">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs font-bold text-green-600 uppercase tracking-wide">System Online</span>
+              <span className="text-xs font-bold text-green-600 uppercase tracking-wide">{t.systemOnline}</span>
             </div>
 
             <div className="h-6 w-px bg-slate-200 mx-1"></div>
 
-            {/* User Profile Dropdown / Area */}
+            {/* --- NEW LANGUAGE TOGGLE BUTTON --- */}
+            <button 
+              onClick={() => {
+                const newLang = language === 'en' ? 'hi' : 'en';
+                setLanguage(newLang);
+                localStorage.setItem("language", newLang);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-colors border border-slate-200"
+            >
+              {language === 'en' ? 'HI' : 'EN'}
+            </button>
+            {/* ---------------------------------- */}
+
+            {/* User Profile */}
             <div className="flex items-center gap-3">
               <img src={user.picture} alt="Profile" className="w-8 h-8 rounded-full border border-slate-200" />
               <div className="hidden sm:block text-right">
                  <p className="text-xs font-bold text-slate-700">{user.name}</p>
-                 <button onClick={handleSignOut} className="text-[10px] text-slate-400 hover:text-red-500 transition font-semibold uppercase tracking-wider">Sign Out</button>
+                 <button onClick={handleSignOut} className="text-[10px] text-slate-400 hover:text-red-500 transition font-semibold uppercase tracking-wider">{t.signOut}</button>
               </div>
             </div>
             
             <button 
               onClick={handleDisconnect}
               className="ml-2 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors px-3 py-2 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100"
-              title="Disconnect from Grid"
+              title={t.disconnect}
             >
               <Icons.LogOut />
             </button>
@@ -352,7 +464,7 @@ function MicrogridDashboard() {
           <div className="max-w-7xl mx-auto px-6 py-3">
             <div className="flex items-center gap-3 text-red-700 animate-pulse">
               <Icons.Alert />
-              <span className="font-bold">SYSTEM ALERT:</span>
+              <span className="font-bold">{t.systemAlert}:</span>
               <span className="font-medium">{alerts.join(" | ")}</span>
             </div>
           </div>
@@ -363,37 +475,37 @@ function MicrogridDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Overview</h2>
-            <p className="text-slate-500 mt-1 font-medium">Real-time telemetry from microgrid sensors.</p>
+            <h2 className="text-2xl font-bold text-slate-800">{t.overview}</h2>
+            <p className="text-slate-500 mt-1 font-medium">{t.realtime}</p>
           </div>
-          {lastUpdate && <p className="text-xs text-slate-400 font-medium bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">Last synced: <span className="text-slate-600 font-mono ml-1">{lastUpdate}</span></p>}
+          {lastUpdate && <p className="text-xs text-slate-400 font-medium bg-white px-3 py-1 rounded-full shadow-sm border border-slate-100">{t.lastSynced}: <span className="text-slate-600 font-mono ml-1">{lastUpdate}</span></p>}
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Voltage" value={latest.voltage} unit="V" icon={Icons.Zap} color={{ bg: "bg-red-50", text: "text-red-500" }} />
-          <StatCard title="Current" value={latest.current} unit="A" icon={Icons.Activity} color={{ bg: "bg-blue-50", text: "text-blue-500" }} />
-          <StatCard title="Battery SOC" value={latest.soc} unit="%" icon={Icons.Battery} color={{ bg: "bg-emerald-50", text: "text-emerald-500" }} />
-          <StatCard title="Temperature" value={latest.temperature} unit="°C" icon={Icons.Thermometer} color={{ bg: "bg-orange-50", text: "text-orange-500" }} subtext="Internal Sensor" />
+          <StatCard title={t.voltage} value={latest.voltage} unit="V" icon={Icons.Zap} color={{ bg: "bg-red-50", text: "text-red-500" }} />
+          <StatCard title={t.current} value={latest.current} unit="A" icon={Icons.Activity} color={{ bg: "bg-blue-50", text: "text-blue-500" }} />
+          <StatCard title={t.battery} value={latest.soc} unit="%" icon={Icons.Battery} color={{ bg: "bg-emerald-50", text: "text-emerald-500" }} />
+          <StatCard title={t.temperature} value={latest.temperature} unit="°C" icon={Icons.Thermometer} color={{ bg: "bg-orange-50", text: "text-orange-500" }} subtext="Internal Sensor" />
         </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ChartBox title="Bus Voltage History" data={data} dataKey="voltage" color={{ hex: "#ef4444", bg: "bg-red-50" }} unit="V" />
-          <ChartBox title="Load Current Trend" data={data} dataKey="current" color={{ hex: "#3b82f6", bg: "bg-blue-50" }} unit="A" />
-          <ChartBox title="Battery Charge Level" data={data} dataKey="soc" color={{ hex: "#10b981", bg: "bg-emerald-50" }} unit="%" />
-          <ChartBox title="Power Consumption" data={data} dataKey="loadPower" color={{ hex: "#a855f7", bg: "bg-purple-50" }} unit="W" />
+          <ChartBox title={t.voltage} data={data} dataKey="voltage" color={{ hex: "#ef4444", bg: "bg-red-50" }} unit="V" />
+          <ChartBox title={t.current} data={data} dataKey="current" color={{ hex: "#3b82f6", bg: "bg-blue-50" }} unit="A" />
+          <ChartBox title={t.battery} data={data} dataKey="soc" color={{ hex: "#10b981", bg: "bg-emerald-50" }} unit="%" />
+          <ChartBox title={t.power} data={data} dataKey="loadPower" color={{ hex: "#a855f7", bg: "bg-purple-50" }} unit="W" />
         </div>
       </main>
     </div>
   );
 }
 
-// Wrapper to Provide Context
+/* ===================== WRAPPER ===================== */
+
 export default function App() {
   return (
-    // REPLACE WITH YOUR ACTUAL GOOGLE CLIENT ID
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID} >
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
       <MicrogridDashboard />
     </GoogleOAuthProvider>
   );
