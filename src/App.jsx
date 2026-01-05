@@ -413,7 +413,7 @@ function MicrogridDashboard() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logo} alt="SunKalp" className="w-10 h-10 object-contain rounded-full border border-slate-200" />
-            <span className="text-lg font-bold text-slate-800 tracking-tight hidden sm:block">Sankalp <span className="text-slate-400 font-medium">Dashboard</span></span>
+            <span className="text-lg font-bold text-slate-800 tracking-tight hidden sm:block">Sunकल्प <span className="text-slate-400 font-medium">Dashboard</span></span>
           </div>
           
           <div className="flex items-center gap-4">
