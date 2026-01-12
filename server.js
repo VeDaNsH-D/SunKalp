@@ -24,13 +24,13 @@ const CONFIG = {
     apiKey: process.env.THINGSPEAK_API_KEY,
   },
   limits: {
-    voltage: 250,      // High limit
-    current: 15,       // High limit
-    temperature: 50,   // High limit
-    humidity: 20,      // Low limit (was Battery)
+    voltage: 15,          // High limit
+    lightIntensity: 100,  // Low limit (was Current)
+    temperature: 40,      // High limit
+    humidity: 80,         // High limit
   },
   checkInterval: 60000, // Check every 60 seconds
-  cooldown: 30 * 60 * 1000, // 30 minutes in milliseconds
+  cooldown: 30 * 1000, // 30 seconds in milliseconds
 };
 
 // Initialize Twilio Client
@@ -43,10 +43,7 @@ if (CONFIG.twilio.accountSid && CONFIG.twilio.authToken) {
 
 // State to track last notification times
 const lastNotificationTime = {
-  voltage: 0,
-  current: 0,
-  temperature: 0,
-  humidity: 0,
+  lightIntensity: 0,
 };
 
 // Helper function to send SMS
@@ -85,47 +82,35 @@ const checkSensors = async () => {
 
       // Parse values (ThingSpeak returns strings)
       const voltage = Number(latest.field1) || 0;
-      const current = Number(latest.field2) || 0;
+      const lightIntensity = Number(latest.field2) || 0; // Was Current, now Light Intensity
       const humidity = Number(latest.field3) || 0; // Was Battery, now Humidity
       // Field 4 is Load Power, not alerting on it based on requirements
       const temperature = Number(latest.field5) || 0;
 
-      console.log(`[${new Date().toISOString()}] Telemetry - V: ${voltage}, I: ${current}, Humidity: ${humidity}%, T: ${temperature}°C`);
+      console.log(`[${new Date().toISOString()}] Telemetry - V: ${voltage}, Light: ${lightIntensity}, Humidity: ${humidity}%, T: ${temperature}°C`);
 
-      // Check Voltage (High Limit)
+      // Check Voltage (High Limit) - Log only
       if (voltage > CONFIG.limits.voltage) {
-        if (now - lastNotificationTime.voltage > CONFIG.cooldown) {
-          const msg = `SYSTEM ALERT: High Voltage detected! Reading: ${voltage}V (Limit: ${CONFIG.limits.voltage}V)`;
+        console.log(`ALERT: High Voltage detected! Reading: ${voltage}V (Limit: ${CONFIG.limits.voltage}V)`);
+      }
+
+      // Check Light Intensity (Low Limit) - SMS Alert
+      if (lightIntensity < CONFIG.limits.lightIntensity) {
+        if (now - lastNotificationTime.lightIntensity > CONFIG.cooldown) {
+          const msg = `--- Welcome to SUNकल्प --- ALERT!!! The panel is not receiving sufficient light. Please check for any obstruction around the panel.`;
           await sendSMS(msg);
-          lastNotificationTime.voltage = now;
+          lastNotificationTime.lightIntensity = now;
         }
       }
 
-      // Check Current (High Limit)
-      if (current > CONFIG.limits.current) {
-        if (now - lastNotificationTime.current > CONFIG.cooldown) {
-          const msg = `SYSTEM ALERT: High Current detected! Reading: ${current}mA (Limit: ${CONFIG.limits.current}mA)`;
-          await sendSMS(msg);
-          lastNotificationTime.current = now;
-        }
-      }
-
-      // Check Temperature (High Limit)
+      // Check Temperature (High Limit) - Log only
       if (temperature > CONFIG.limits.temperature) {
-        if (now - lastNotificationTime.temperature > CONFIG.cooldown) {
-          const msg = `SYSTEM ALERT: High Temperature detected! Reading: ${temperature}°C (Limit: ${CONFIG.limits.temperature}°C)`;
-          await sendSMS(msg);
-          lastNotificationTime.temperature = now;
-        }
+        console.log(`ALERT: High Temperature detected! Reading: ${temperature}°C (Limit: ${CONFIG.limits.temperature}°C)`);
       }
 
-      // Check Humidity (Low Limit) - Only alert if humidity > 0 to avoid false positives on disconnected sensors
-      if (humidity < CONFIG.limits.humidity && humidity > 0) {
-        if (now - lastNotificationTime.humidity > CONFIG.cooldown) {
-          const msg = `SYSTEM ALERT: Low Humidity detected! Level: ${humidity}% (Limit: ${CONFIG.limits.humidity}%)`;
-          await sendSMS(msg);
-          lastNotificationTime.humidity = now;
-        }
+      // Check Humidity (High Limit) - Log only
+      if (humidity > CONFIG.limits.humidity) {
+        console.log(`ALERT: High Humidity detected! Level: ${humidity}% (Limit: ${CONFIG.limits.humidity}%)`);
       }
 
     }

@@ -30,7 +30,7 @@ const translations = {
     realtime: "Real-time telemetry from microgrid sensors.",
     lastSynced: "Last synced",
     voltage: "Voltage",
-    current: "Current",
+    current: "Current", // Kept for legacy
     humidity: "Humidity",
     lightIntensity: "Light Intensity",
     panelTemperature: "Panel Temperature",
@@ -41,9 +41,9 @@ const translations = {
     disconnect: "Disconnect",
     alerts: {
       voltage: "High Voltage",
-      current: "High Current",
-      humidity: "Low Humidity",
+      humidity: "High Humidity",
       temperature: "High Temperature",
+      lightIntensity: "Low Light Intensity"
     }
   },
   hi: {
@@ -59,7 +59,7 @@ const translations = {
     realtime: "माइक्रोग्रिड सेंसर से रियल-टाइम डेटा।",
     lastSynced: "अंतिम अपडेट",
     voltage: "वोल्टेज",
-    current: "करंट",
+    current: "करंट", // Kept for legacy
     humidity: "आर्द्रता",
     lightIntensity: "प्रकाश तीव्रता",
     panelTemperature: "पैनल तापमान",
@@ -70,9 +70,9 @@ const translations = {
     disconnect: "डिस्कनेक्ट करें",
     alerts: {
       voltage: "उच्च वोल्टेज",
-      current: "उच्च करंट",
-      humidity: "कम आर्द्रता",
+      humidity: "उच्च आर्द्रता",
       temperature: "उच्च तापमान",
+      lightIntensity: "कम प्रकाश तीव्रता"
     }
   }
 };
@@ -108,11 +108,10 @@ const Icons = {
 
 /* ===================== THRESHOLDS ===================== */
 const LIMITS = {
-  voltage: 250,
-  current: 15,
-  temperature: 50,
-  humidity: 20
-  // Note: Humidity (was Battery) is a LOWER limit, others are UPPER limits
+  voltage: 15,
+  lightIntensity: 100,
+  temperature: 40,
+  humidity: 80
 };
 
 /* ===================== UI COMPONENTS ===================== */
@@ -240,15 +239,15 @@ function MicrogridDashboard() {
       newAlerts.push(`${t.alerts.voltage}: ${latest.voltage}V`);
       notify(t.alerts.voltage, `${latest.voltage}V`);
     }
-    if (latest.current > LIMITS.current) {
-      newAlerts.push(`${t.alerts.current}: ${latest.current}mA`);
-      notify(t.alerts.current, `${latest.current}mA`);
+    if (latest.lightIntensity < LIMITS.lightIntensity) {
+      newAlerts.push(`${t.alerts.lightIntensity}: ${latest.lightIntensity} lux`);
+      notify(t.alerts.lightIntensity, `${latest.lightIntensity} lux`);
     }
     if (latest.temperature > LIMITS.temperature) {
       newAlerts.push(`${t.alerts.temperature}: ${latest.temperature}°C`);
       notify(t.alerts.temperature, `${latest.temperature}°C`);
     }
-    if (latest.soc < LIMITS.humidity && latest.soc > 0) {
+    if (latest.soc > LIMITS.humidity) {
       newAlerts.push(`${t.alerts.humidity}: ${latest.soc}%`);
       notify(t.alerts.humidity, `${latest.soc}%`);
     }
@@ -303,7 +302,7 @@ function MicrogridDashboard() {
         const formatted = json.feeds.map(f => ({
           time: new Date(f.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           voltage: Number(f.field1) || 0,
-          current: Number(f.field2) || 0,
+          lightIntensity: Number(f.field2) || 0, // Renamed from current
           soc: Number(f.field3) || 0, // Used for Humidity (Param) & Panel Temp (Graph)
           loadPower: Number(f.field4) || 0, // Used for Power Output
           temperature: Number(f.field5) || 0,
@@ -495,7 +494,7 @@ function MicrogridDashboard() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <StatCard title={t.voltage} value={latest.voltage} unit="V" icon={Icons.Zap} color={{ bg: "bg-red-50", text: "text-red-500" }} />
-          <StatCard title={t.current} value={latest.current} unit="mA" icon={Icons.Activity} color={{ bg: "bg-blue-50", text: "text-blue-500" }} />
+          <StatCard title={t.lightIntensity} value={latest.lightIntensity} unit="lux" icon={Icons.Activity} color={{ bg: "bg-blue-50", text: "text-blue-500" }} />
           <StatCard title={t.humidity} value={latest.soc} unit="%" icon={Icons.Droplet} color={{ bg: "bg-emerald-50", text: "text-emerald-500" }} />
           <StatCard title={t.temperature} value={latest.temperature} unit="°C" icon={Icons.Thermometer} color={{ bg: "bg-orange-50", text: "text-orange-500" }} subtext="Internal Sensor" />
           <StatCard title={t.powerOutput} value={latest.loadPower} unit="W" icon={Icons.Sun} color={{ bg: "bg-purple-50", text: "text-purple-500" }} />
@@ -504,7 +503,7 @@ function MicrogridDashboard() {
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartBox title={t.voltage} data={data} dataKey="voltage" color={{ hex: "#ef4444", bg: "bg-red-50" }} unit="V" />
-          <ChartBox title={t.lightIntensity} data={data} dataKey="current" color={{ hex: "#3b82f6", bg: "bg-blue-50" }} unit="" />
+          <ChartBox title={t.lightIntensity} data={data} dataKey="lightIntensity" color={{ hex: "#3b82f6", bg: "bg-blue-50" }} unit="lux" />
           <ChartBox title={t.panelTemperature} data={data} dataKey="soc" color={{ hex: "#10b981", bg: "bg-emerald-50" }} unit="°C" />
           <ChartBox title={t.powerOutput} data={data} dataKey="loadPower" color={{ hex: "#a855f7", bg: "bg-purple-50" }} unit="W" />
         </div>
