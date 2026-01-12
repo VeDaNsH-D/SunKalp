@@ -504,7 +504,7 @@ function MicrogridDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ChartBox title={t.voltage} data={data} dataKey="voltage" color={{ hex: "#ef4444", bg: "bg-red-50" }} unit="V" />
           <ChartBox title={t.lightIntensity} data={data} dataKey="lightIntensity" color={{ hex: "#3b82f6", bg: "bg-blue-50" }} unit="lux" />
-          <ChartBox title={t.panelTemperature} data={data} dataKey="soc" color={{ hex: "#10b981", bg: "bg-emerald-50" }} unit="°C" />
+          <ChartBox title={t.panelTemperature} data={data} dataKey="temperature" color={{ hex: "#10b981", bg: "bg-orange-50" }} unit="°C" />
           <ChartBox title={t.powerOutput} data={data} dataKey="loadPower" color={{ hex: "#a855f7", bg: "bg-purple-50" }} unit="mW" />
         </div>
       </main>
